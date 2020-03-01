@@ -1,3 +1,3 @@
 # cnidome_asr
 
-Cnidocyte ancestral state reconstruction
+Reconstructing the evolution of cnidocytes across the phylum cnidaria
