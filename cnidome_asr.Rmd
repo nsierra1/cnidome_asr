@@ -1,0 +1,199 @@
+---
+title: "cnidome_asr"
+author: "Noemie Sierra"
+date: "2/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load Packages and Tools
+
+```{r}
+
+  # Load packages and tools
+  suppressMessages(library(phytools))
+  suppressMessages(library(gsheet))
+  suppressMessages(library(stringr))
+  suppressMessages(library("Biostrings"))
+  `%notin%`<-Negate(`%in%`)
+  
+  setwd("~/Desktop/projects/cnidome/development/") ## figure this out later
+  wd="/Users/noemie/Desktop/projects/cnidome/development/"  ## BEFORE PUBLISHING, SUBSTITUTE wd => getwd(), AND CHANGE TO OUT OF DEVELOPMENT
+  #date<-gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date())
+  #dir.create(paste0(getwd(), "/data/", date),recursive=TRUE,showWarnings=FALSE)
+
+```
+
+
+Tree Cleanup
+
+Removes tips from tree without sufficiently specific nomenclature. 
+
+  - Creates names for internal nodes for use with IQTree/BEAST
+```{r}
+  
+
+    # Download relative-time calibrated tree from github, save local copy
+      #url = "https://raw.githubusercontent.com/npicciani/picciani_et_al_2018/master/Analyses/10_Time_calibration/tree_cnid_635.tre"
+      #dest = paste0(wd,"/data/tree_cnid_635.tre")
+      #download.file(url,dest,method="wget");rm(url,dest) #change method to auto before pubs
+
+    # Load in tree  
+      raw_tree<-read.tree(file=paste0(wd,"data/tree_cnid_635.tre"))[[1]]
+  
+    # Remove branches where the species name is not sufficiently descriptive
+      drop<- c("_sp$", "_gen$","^Uncultured_","^Unverified_","^Undescribed_","Orange_sea")
+      tree<-drop.tip(raw_tree,grep(paste(drop,collapse="|"),raw_tree$tip.label, value=T) ,trim.internal=TRUE,subtree=FALSE,rooted=is.rooted(raw_tree),collapse.singles=T,interactive=F); rm(drop,raw_tree)
+      length(tree$tip.label)
+    
+    # List of species
+      #out<-c("Trichoplax_adhaerens","Strongylocentrotus_purpuratus","Crassostrea_gigas","Amphimedon_queenslandica")
+      tree_Sp<-tree$tip.label
+      #cnid_Sp<-tree$tip.label[!tree$tip.label %in% out]  # contains all cnidarian species for there were at least two gene sequences
+      #rm(out)
+      
+      
+        
+      
+    # Now need to figure out whatever changes are necessary to make the tree useable to IQTree/BEAST. Start by loading into BEAUti:
+      
+      
+      tree2 = read.tree(file="~/Desktop/projects/cnidome/development/data/tree_12-17.tre")
+      tree3<-makeNodeLabel(tree,method="number",prefix="INT")
+    
+    # Save pruned tree to new file
+      write.tree(tree,file=paste0(wd,"data/pruned_treeTEST.tre")) # no node labels
+      write.tree(tree,file=paste0(wd,"data/pruned_treeTEST.txt"))
+
+      write.tree(tree3,file=paste0(wd,"data/testINTnodes.tre")) # node labels
+      write.tree(tree3,file=paste0(wd,"data/testINTnodes.txt"))
+```
+
+
+Gene Data Cleanup v2 - Gene Partitions
+
+Opens each multiple sequence alignment to remove accession numbers from the headers (for BEAST to connect the tree species and character species to the sequence data). Because cnidomes can vary between sister species, sequences without sufficiently specific nomenclature are also trimmed. An exception is made for Velella_sp (which is renamed to Velella_velella), since the genus Velella is considered monotypic.
+
+The resulting list of species is 2450 sp long - to construct the tree, Picciani et al used only species that had 2 or more genes avaialble, reducing the taxa list to 1106 for the construction of the tree, which is later reduced to 924 (920 + 4 outgroups) when excluding species without sufficiently specific nomenclature.
+
+
+```{r}
+
+  genes<-c("12S","16S","18S","28S","COI")
+  trim_SpH=c()
+  fasta_Sp=c()
+  
+    for (u in genes){
+      # Download the sequence alignment file from github, save local copies
+        #url = paste0("https://raw.githubusercontent.com/npicciani/picciani_et_al_2018/master/Analyses/3_Processed_alignments/",u,"-trimmed-unique.fasta")
+        #dest = paste0(wd,"/data/alignments_18/",u,"-trimmed-unique.fasta")
+        #download.file(url,dest,method="wget") #change method to auto before pubs
+      
+      # Load in the fasta
+        file=paste0(wd,"data/alignments_18/",u,"-trimmed-unique.fasta")
+        fasta<-as.matrix(read.FASTA(file,type="DNA"))
+        
+      # Change the "_sp" tag on Velella species (monotypic)
+        rownames(fasta)<-gsub("Velella_sp","Velella_velella",as.vector(dimnames(fasta)[[1]]))
+      
+      # Remove accession numbers from fasta headers
+          SpH<-row.names(fasta) # Save headers with accession numbers to a vector
+        accession<-c("_[A-Z]{1,2}_?\\d+.\\d","_\\d{1,4}-?\\d{4}")
+        rownames(fasta)<-gsub(paste(accession,collapse="|"),"",as.vector(dimnames(fasta )[[1]]))
+          Sp<-row.names(fasta) 
+  
+      # Remove species not found on the fixed tree 
+        # Removes species with fewer than two gene sequences available, and species without sufficiently specific nomenclature
+        fasta<-fasta[row.names(fasta) %in% tree_Sp,]
+        
+        trim_SpH<-append(trim_SpH, SpH[Sp %notin% tree_Sp]) # %notin% initialized in first block
+        
+      # Save species remaining in file to a vector
+        fasta_Sp<-append(fasta_Sp,row.names(fasta)) #overwrite the above
+      
+      # Save as new fasta file
+        write.FASTA(fasta,paste0(wd,"data/alignments_18/",u,"-pruned.fasta"))
+    
+    }
+
+  
+    # Save alphabetical list of species in post-trimmed gene files to a txt file
+    if (sort(unique(fasta_Sp))==sort(tree_Sp)){
+      write.table(sort(unique(fasta_Sp)),file=paste0(wd,"data/alignments_18/species_list.txt"),quote=F,row.names=F,col.names=F)
+    }
+    
+    # Save alphabetical list of species trimmed from fasta files to a txt file
+    write.table(sort(unique(trim_SpH)),file=paste0(wd,"data/alignments_18/fasta_species-trimmed.txt"),quote=F,row.names=F,col.names=F)
+
+rm(accession,Sp,SpH,file,fasta,fasta_Sp,u)
+```    
+    
+    
+    
+  ## IQTree pointed out that 16S file had two Acropora_humilis sequences after pruning, the 18S and 28S had two Velella_velella sequences. Remove the sequence that has more gaps "-", or if they are equivalent, remove the second one
+  
+```{r}
+    
+    dup<-c("Acropora_humilis","Velella_velella")
+    
+    if (length(grep(paste(dup,collapse="|"),rownames(as.matrix(read.FASTA(paste0(wd,"data/alignments_18/16S-pruned.fasta"),type="DNA"))))) > 1) 
+
+
+    # If there are more than 2 in the 16S-pruned.fasta:
+    if (length(grep("Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(wd,"data/alignments_18/16S-pruned.fasta"),type="DNA"))))) > 1) {
+      
+      # Open the two sequences as strings in a df with the accession number header
+        Ach<-as.matrix(grep("Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(wd,"data/alignments_18/16S-trimmed-unique.fasta"),type="DNA"))), value=T),value=T)
+        Ach<-cbind(Ach,as.matrix(scan(paste0(wd,"data/alignments_18/16S-pruned.fasta"),what=character(),sep="\t")[grep("Acropora_humilis",scan(paste0(wd,"data/alignments_18/16S-pruned.fasta"),what=character(),sep="\t")) + 1]))
+
+      # Find which sequence has more gaps ("-") to trim
+        # if the first one has more gaps:
+        if (str_count(Ach[1,2],pattern="-") > str_count(Ach[2,2],pattern="-")){ 
+            # Get the index in the 16S-pruned.fasta for the first humilis sequence 
+            c=grep("^Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(wd,"data/alignments_18/16S-pruned.fasta"),type="DNA"))))[1]
+            # Remove from fasta
+            write.FASTA(as.matrix(read.FASTA(paste0(wd,"data/alignments_18/16S-pruned.fasta"),type="DNA"))[-c,], paste0(wd,"data/alignments_18/16S-pruned.fasta"))
+            
+            # Save the header to trim_SpH and rewrite file
+            if(Ach[1,1] %notin% trim_SpH) {trim_SpH<-append(trim_SpH,Ach[1,1])}
+          write.table(sort(unique(trim_SpH)),file=paste0(wd,"data/alignments_18/fasta_species-trimmed.txt"),quote=F,row.names=F,col.names=F)
+        } 
+        else { # if the second one has more gaps, or if they are the same length, trim the second
+            c=grep("^Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(wd,"data/alignments_18/16S-pruned.fasta"),type="DNA"))))[2]
+            write.FASTA(as.matrix(read.FASTA(paste0(wd,"data/alignments_18/16S-pruned.fasta"),type="DNA"))[-c,], paste0(wd,"data/alignments_18/16S-pruned.fasta"))
+            
+            # Save the header to trim_SpH and rewrite file
+            if(Ach[2,1] %notin% trim_SpH) {trim_SpH<-append(trim_SpH,Ach[2,1])}
+          write.
+        }
+    }
+    
+    
+    
+      
+  rm(trim_SpH,Ach,fasta,file,c,Sp,u,genes,accession,fasta_Sp)
+  
+  
+  
+```
+
+
+# Character Data
+```{r}
+
+ # Read in character data from online source
+  raw_data<-read.csv(text=(gsheet2text('https://docs.google.com/spreadsheets/d/1sQASwWIdS4UZ3SRjMNn9lRMjK9atUSq4c3sxWIRSakU/edit#gid=583503745')))
+    length(unique(raw_data$Species)) # number of species with character data
+  # Remove species that are not in the gene species (no gene data to place them)
+  data<-raw_data[which(raw_data$Species %in% gene_species==TRUE),]; rm(raw_data)
+    length(unique(data$Species)) # species on tree for which we have character data
+    length(gene_species) - length(unique(data$Species)) # number of species on tree for which we are missing data
+
+
+
+```
+
+
