@@ -29,7 +29,8 @@ output: html_document
 
 Tree Cleanup
 
-Removes tips from tree without sufficiently specific nomenclature. Saves to a nexus file for use with IQTree/BEAST.
+Removes tips from tree without sufficiently specific nomenclature and changes any species names that have been updated on WoRMS. Saves to a nexus file for use with IQTree/BEAST. The resulting tree has 908 species (904 + 4 outgroups) when excluding species without sufficiently specific nomenclature and removing tips that have been consolidated into single species on WoRMS.
+
 
 ```{r Tree Cleanup, echo=FALSE}
   
@@ -82,15 +83,13 @@ Gene Data Cleanup v2 - Gene Partitions
 
 Opens each multiple sequence alignment to remove accession numbers from the headers (for BEAST to connect the tree species and character species to the sequence data). Because cnidomes can vary between sister species, sequences without sufficiently specific nomenclature are also trimmed. An exception is made for Velella_sp (which is renamed to Velella_velella), since the genus Velella is considered monotypic.
 
-The resulting list of species is 2450 sp long - to construct the tree, Picciani et al used only species that had 2 or more genes avaialble, reducing the taxa list to 1106 for the construction of the tree, which is later reduced to 924 (920 + 4 outgroups) when excluding species without sufficiently specific nomenclature.
-
+The resulting list of species is 2450 sp long - which is reduced to 908 (904 + 4 outgroups) when excluding species that do not appear on the final fixed tree or do not have sufficiently specific nomenclature, and removing tips that have been consolidated into single species on WoRMS.
 
 ```{r message=FALSE}
 
   genes<-c("12S","16S","18S","28S","COI")
   trim_SpH=c()
   fasta_Sp=c()
-  
   for (u in genes){
       # Download the sequence alignment file from github, save local copies
       if (file.exists(paste0(root,"/data/alignments_18/",u,"-trimmed-unique.fasta"))==F){
@@ -134,75 +133,52 @@ The resulting list of species is 2450 sp long - to construct the tree, Picciani 
   
     # Save list of species retained in gene files to a txt
     if (sort(unique(fasta_Sp))==sort(tree$tip.label)){
-      write.table(sort(unique(fasta_Sp)),file=paste0(root,"/data/alignments_18/species_list.txt"),quote=F,row.names=F,col.names=F)
-    }
+      write.table(sort(unique(fasta_Sp)),file=paste0(root,"/data/alignments_18/species_list.txt"),quote=F,row.names=F,col.names=F)}
     
     # Save alphabetical list of species trimmed from fasta files to a txt file
     write.table(sort(unique(trim_SpH)),file=paste0(root,"/data/alignments_18/fasta_species-trimmed.txt"),quote=F,row.names=F,col.names=F)
 
-rm(SpH,fasta,fasta_Sp,u, trim_SpH,genes)
+rm(SpH,fasta,fasta_Sp,u,i,orig_Sp,dep, trim_SpH)
 
 ```    
     
     
     
-  ## IQTree pointed out that 16S file had two Acropora_humilis sequences after pruning, the 18S and 28S had two Velella_velella sequences. Remove the sequence that has more gaps "-", or if they are equivalent, remove the second one
+  ## IQTree pointed out that multiple pruned gene files had duplicate sequence headers (multiple sequences for the same spacies). Remove the sequence that has more gaps "-", or if they are equivalent, remove the first one.
   
 ```{r}
     
-    dup<-c("Acropora_humilis","Velella_velella")
+    for (u in genes){
     
-    if (length(grep(paste(dup,collapse="|"),rownames(as.matrix(read.FASTA(paste0(root,"/data/alignments_18/16S-pruned.fasta"),type="DNA"))))) > 1) 
-
-
-    # If there are more than 2 in the 16S-pruned.fasta:
-    if (length(grep("Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(root,"/data/alignments_18/16S-pruned.fasta"),type="DNA"))))) > 1) {
-      
-      # Open the two sequences as strings in a df with the accession number header
-        Ach<-as.matrix(grep("Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(root,"/data/alignments_18/16S-trimmed-unique.fasta"),type="DNA"))), value=T),value=T)
-        Ach<-cbind(Ach,as.matrix(scan(paste0(root,"/data/alignments_18/16S-pruned.fasta"),what=character(),sep="\t")[grep("Acropora_humilis",scan(paste0(root,"/data/alignments_18/16S-pruned.fasta"),what=character(),sep="\t")) + 1]))
-
-      # Find which sequence has more gaps ("-") to trim
-        # if the first one has more gaps:
-        if (str_count(Ach[1,2],pattern="-") > str_count(Ach[2,2],pattern="-")){ 
-            # Get the index in the 16S-pruned.fasta for the first humilis sequence 
-            c=grep("^Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(root,"/data/alignments_18/16S-pruned.fasta"),type="DNA"))))[1]
-            # Remove from fasta
-            write.FASTA(as.matrix(read.FASTA(paste0(root,"/data/alignments_18/16S-pruned.fasta"),type="DNA"))[-c,], paste0(root,"/data/alignments_18/16S-pruned.fasta"))
-            
-            # Save the header to trim_SpH and rewrite file
-            if(Ach[1,1] %notin% trim_SpH) {trim_SpH<-append(trim_SpH,Ach[1,1])}
-          write.table(sort(unique(trim_SpH)),file=paste0(root,"/data/alignments_18/fasta_species-trimmed.txt"),quote=F,row.names=F,col.names=F)
-        } 
-        else { # if the second one has more gaps, or if they are the same length, trim the second
-            c=grep("^Acropora_humilis",rownames(as.matrix(read.FASTA(paste0(root,"/data/alignments_18/16S-pruned.fasta"),type="DNA"))))[2]
-            write.FASTA(as.matrix(read.FASTA(paste0(root,"/data/alignments_18/16S-pruned.fasta"),type="DNA"))[-c,], paste0(root,"/data/alignments_18/16S-pruned.fasta"))
-            
-            # Save the header to trim_SpH and rewrite file
-            if(Ach[2,1] %notin% trim_SpH) {trim_SpH<-append(trim_SpH,Ach[2,1])}
-          write.
-        }
-    }
-    
-    
-    
-      
-  rm(Ach,fasta,file,c,Sp,u,accession,fasta_Sp)
+      # Prune species that now appear multiple times in fastas
+        # Load in the fasta
+        file=paste0(root,"/data/alignments_18/",u,"-pruned.fasta")
+        align<-as.alignment(as.matrix(read.FASTA(file,type="DNA")));rm(file)
+        fasta<-as.DNAbin(align)
+          
+        sec<-which(duplicated(align[["nam"]])==T)
+        if(length(sec)>0){ # if there are duplicate values in the file
+          fir<-match(align[["nam"]][sec],align[["nam"]])
+        
+          for (i in length(fir):1){
+            # information in seq is the number of non-indel characters (string length - "-")
+            infoA<-nchar(align[["seq"]][sec[i]]) - str_count(align[["seq"]][sec[i]],pattern="-")
+            infoB<-nchar(align[["seq"]][fir[i]]) - str_count(align[["seq"]][fir[i]],pattern="-")
+          
+            if (infoA > infoB) fasta<-fasta[-which(duplicated(row.names(fasta)))[i],] 
+            else fasta<-fasta[-match(row.names(fasta)[which(duplicated(row.names(fasta)))[i]],row.names(fasta)),]
+          }
+          
+        # Overwrite fasta
+        write.FASTA(fasta, paste0(root,"/data/alignments_18/",u,"-pruned.fasta"))
+        
+        # Eventually figure out how to locate the accession from the original fasta (going to have to be by sequence matching b/c many of the duplicates are the result of the nomenclature update, which isn't reflected in the trimmed-unique.fasta)
+      }
+        
+        
+    }; rm(align,fir,sec,u,i,infoA,infoB,genes,cut,accession,fasta)
   
-```
 
-# Change Outdated Nomenclature
-```{r}
-
- # Replace the species names with most recent nomenclature from WoRMS
-    # Load in the deprecated_names document
-    dep<-read.csv(text=(gsheet2text('https://docs.google.com/spreadsheets/d/1T3-qX9tAqZ2CCQocp8CEVprsjDayoYmffNf_8F3_pzc/edit#gid=0')))
-    dep<-dep[,1:2]; dep<-dep[dep[,2]!="",]; dep<-dep[dep[,1]!="",]
-    # Replace species on the tree
-    for (i in 1:length(tree$tip.label)){
-      if(tree$tip.label[i] %in% dep$fixed_tree){tree$tip.label[i]<-as.character(dep$accepted_name[match(tree$tip.label[i],dep$fixed_tree)])}
-    }
-    
 ```
 
 # Character Data
