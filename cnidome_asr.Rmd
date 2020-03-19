@@ -176,9 +176,44 @@ rm(SpH,fasta,fasta_Sp,u,i,orig_Sp,dep, trim_SpH)
       }
         
         
-    }; rm(align,fir,sec,u,i,infoA,infoB,genes,cut,accession,fasta)
+    }; rm(align,fir,sec,u,i,infoA,infoB,cut,accession,fasta)
   
 
+```
+
+
+Run IQTree
+
+Use IQTree model selection to find potential models of best fit on the sequence data to narrow models used in BEAST. Models are limited to those available in BEAUti
+```{r}
+
+    # if the folder for the day does not exist, make it and set counter to 1
+    # if it does exist, while there is a folder for gene_date_count, increment count until not present
+
+    # Now count is at a fresh position regardless of erasing variables
+
+  # Check if there is a directory for the day, (if not, create, set count to 1)
+  if (dir.exists(paste0(root, "/dev/iqtree/", gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date())))==F){
+    c=1
+    dir.create(paste0(root, "/dev/iqtree/", gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date())),recursive=TRUE,showWarnings=FALSE)
+  } else {
+      while (file.exists(paste0(root,"/dev/iqtree/",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),"/",genes[1],"_",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),"_",c,".log"))==T) {
+        c=c+1
+      }
+  }
+  
+    # Move into directory (only within this notebook chunk)
+  suppressWarnings(setwd(paste0(root, "/dev/iqtree/", gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()))))
+
+  # Run IQTree
+  for (u in genes){
+    x<-paste0("iqtree -s ",root,"/data/alignments_18/",u,"-pruned.fasta -pre ",u,"_",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),"_",c," -st DNA -nt AUTO -m TESTNEWONLY")
+    system(x)
+  }
+
+  
+  #Works! Now lets actually read through BEAUti/IQTree more carefully and update the settings to test more specific/useful sets of 
+  
 ```
 
 # Character Data
