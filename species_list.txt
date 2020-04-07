@@ -162,8 +162,8 @@ Capnea_georgiana
 Carukia_barnesi
 Carybdea_arborifera
 Carybdea_branchi
+Carybdea_brevipedalia
 Carybdea_marsupialis
-Carybdea_mora
 Carybdea_rastonii
 Carybdea_xaymacana
 Caryophyllia_inornata
@@ -385,7 +385,7 @@ Gonothyraea_loveni
 Gymnopraia_lapislazula
 Gyractis_sesere
 Halcampa_duodecimcirrata
-Halcampoides_purpurea
+Halcampoides_purpureus
 Halcurias_pilatus
 Halecium_beanii
 Halecium_halecinum
@@ -600,7 +600,7 @@ Orthopyxis_everta
 Orthopyxis_integra
 Orthopyxis_mianzani
 Orthopyxis_sargassicola
-Ostisactis_pearseae
+Ostiactis_pearseae
 Oswaldella_grandis
 Oswaldella_laertesi
 Oswaldella_shetlandica
