@@ -90,7 +90,7 @@ The following generates the files based on the species on the fixed tree.
   # Read in character data from online source
     suppressMessages(raw_data<-read.csv(text=(gsheet2text('https://docs.google.com/spreadsheets/d/1QsjBudixX8J0eXoN8efMSXI7RoyC2EtCczzdkim9SUA/edit?usp=sharing'))))
     # Save to a file
-      write.table(subset(raw_data, select=-c(X,Key)),file=paste0(root,"/data/character_data/raw_character_",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),".txt"),quote=F,sep="\t",row.names=F)
+      write.table(subset(raw_data, select=-c(X,Key)),file=paste0(root,"/data/character_data/data_table/raw_character_",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),".txt"),quote=F,sep="\t",row.names=F)
     
   # Data Cleanup
     # Remove extra columns and rows (user info in google sheet)
@@ -103,7 +103,7 @@ The following generates the files based on the species on the fixed tree.
       data<-data[with(data,order(Class,Species)),] # keep sorted by Class and then Species
   
     # Save to a file
-      write.table(data,file=paste0(root,"/data/character_data/character_",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),".txt"),quote=F,sep="\t",row.names=F)
+      write.table(data,file=paste0(root,"/data/character_data/data_table/character_",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),".txt"),quote=F,sep="\t",row.names=F)
 
 
     
@@ -119,27 +119,20 @@ The following generates the files based on the species on the fixed tree.
     # ? = NO DATA in species
   
   for (type in cnidocytes){
-    # Make an empty df, populate col1 with all species on tree
+    # Make an empty df, populate states$Species with all species on tree
     states <- setNames(data.frame(matrix(ncol=2, nrow=length(tree$tip.label))), c("Species", "State"))
-    states[,1]<-tree$tip.label
+    states[,1]<-sort(tree$tip.label)
     
-    #Populate col2
-    #if the species in data has 
+    # Populate states$State with cnidocyte present(1), absent(0), no data (?)
+    spp_with <- as.vector(unique(data[which(data$Cnidocyte == type),2]))
+    states$State<-ifelse(states$Species %in% spp_with,1,0)
 
-    # record species with cnidocyte present as a vector
-    species_with <- as.vector(unique(data[which(data$Cnidocyte == type),2]))
-    # use the vector to populate the df with 1s
-    for (i in 1:nrow(states)) {
-      if (states[i,1] %in% species_with) {states[i,2] = 1} # if the species is in spec_w_cnidocyte, add a 1
-      if (states[i,1] %notin% unique(data$Species)) {states[i,2]="?"} # if the species is not in the charac data, add a ?
-      else {states[i,2] = 0}
-    }
     # save a tab file for the data (per intructions on BEAUti)
     ntax=length(tree$tip.label)
     names(states)<-c("traits",type)
-    filename = paste0("data/",date,"/M2_", type, ".tab")
-    write.table(states[,1:2], file=filename, sep="\t", quote=FALSE, row.names = F)
-  }; rm(i, species_with,type,filename,states)
+    filename = paste0(root,"/data/character_data/",type,"_data_",gsub(paste0(format(Sys.Date(), "%Y"),"-"),"",Sys.Date()),".tab")
+    write.table(states, file=filename, sep="\t", quote=FALSE, row.names = F)
+  }; rm(i, spp_with,type,filename,states)
     
 
 ```
