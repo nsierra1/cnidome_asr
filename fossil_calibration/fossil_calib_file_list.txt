@@ -1,0 +1,10 @@
+56_Porites_sp_stem.txt
+66_Stylaster_cretaceous_sp_stem.txt
+242_Progonionemus_vogesiacus_stem.txt
+259.9_Houchangocyathus_wangi_stem.txt
+307_Anthracomedusa_turnbulli_crown.txt
+307_Lascoa_mesostaurata_crown.txt
+513_Arrowipora_fromensis_Blinmanipora_hawkerensis_stem.txt
+521_Yunnanoascus_haikouensis_stem.txt
+529_Olivooides_multisulcatus_stem.txt
+530_Eolympia_crown.txt
