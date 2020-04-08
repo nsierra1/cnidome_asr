@@ -8,10 +8,10 @@ output: html_document
 ```{r setup, echo=F}
 
   knitr::opts_chunk$set(warning = FALSE, include = FALSE)
-  knitr::opts_knit$set(root.dir = "~/path") ## SET PATH TO PROJECT DIRECTORY ROOT
+  knitr::opts_knit$set(root.dir = "~/set/path") ## SET PATH TO PROJECT DIRECTORY ROOT
   
   # Set up project directory
-  root="/SET/PATH/" ## SET PATH TO PROJECT DIRECTORY ROOT
+  root="/set/path" ## SET PATH TO PROJECT DIRECTORY ROOT
   dir.create(file.path(root, 'alignments_18'), recursive = TRUE)
   dir.create(file.path(root, 'character_data'), recursive = TRUE)
   dir.create(file.path(root, 'fossil_calibrations'), recursive = TRUE)
@@ -80,7 +80,7 @@ Removes tips from tree without sufficiently specific nomenclature and changes an
 Character Data Cleanup
 
 The following generates the files based on the species on the fixed tree.
-```{r}
+```{r Character Data Cleanup, echo=FALSE}
   
 
   # Read in character data from online source
@@ -134,6 +134,30 @@ The following generates the files based on the species on the fixed tree.
     
 
 ```
+
+Fossil Calibration Data
+
+Download taxon lists for each fossil from github, used in BEAST to chronologically calibrate nodes
+
+```{r}
+
+  # Download list of fossil calibration files
+      url = "https://raw.githubusercontent.com/nsierra1/cnidome_asr/master/fossil_calibration/fossil_calib_file_list.txt"
+      dest = paste0(root,"/fossil_calibrations/fossil_calib_file_list.txt")
+      download.file(url,dest,method="wget")
+      
+    c_list<-as.vector(as.matrix(read.table(paste0(root,"/data/fossil_calibrations/fossil_calib_file_list.txt"))))
+    
+    for (file in c_list){
+      if (file.exists(paste0(root,"data/fossil_calibrations/",file))==F){
+        url = paste0("https://raw.githubusercontent.com/nsierra1/cnidome_asr/master/fossil_calibration/",file)
+        dest = paste0(root,"/fossil_calibrations/",file)
+        download.file(url,dest,method="wget")
+      }
+    }; rm(url,dest,c_list)
+
+```
+
 
 Gene Data Cleanup v2 - Gene Partitions
 
