@@ -1,0 +1,12 @@
+11
+-U	root	540	800
+-U	Paragorgia_arborea	Montipora_digitata	530	650
+-U	Chironex_fleckeri	Carybdea_xaymacana	307	400
+-U	Craspedacusta_sowerbii	Aglantha_digitale	242	350
+-U	Hydra_viridissima	Craterolophus_convolvulus	529	650
+-U	Porites_astreoides	Porites_lutea	56	180
+-U	Porites_astreoides	Montastraea_cavernosa	259.9	380
+-U	Cyanea_capillata	Atolla_wyvillei	307	 400
+-U	Nausithoe_atlantica	Aurelia_aurita	521	650
+-U	Stylaster_sinuosus	Stylaster_imbricatus	66	195
+-U 	Epizoanthus_couchii	Palythoa_tuberculosa	513	640
