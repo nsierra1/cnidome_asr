@@ -11,7 +11,7 @@ output: html_document
   knitr::opts_knit$set(root.dir = "~/set/path") ## SET PATH TO PROJECT DIRECTORY ROOT
   
   # Set up project directory
-  root="/set/path" ## SET PATH TO PROJECT DIRECTORY ROOT
+  root="/Users/noemie/Desktop/projects/cnidome/data/" ## SET PATH TO PROJECT DIRECTORY ROOT
   dir.create(file.path(root, 'alignments_18'), recursive = TRUE)
   dir.create(file.path(root, 'character_data'), recursive = TRUE)
   dir.create(file.path(root, 'fossil_calibrations'), recursive = TRUE)
@@ -65,10 +65,11 @@ Removes tips from tree without sufficiently specific nomenclature and changes an
   # Prune species that now appear multiple times in tree
     drop<-which(duplicated(tree$tip.label)==T)
     tree<-drop.tip(tree,drop,trim.internal=TRUE,subtree=FALSE,rooted=is.rooted(tree),collapse.singles=T,interactive=F); rm(drop)
-    
-  # Save to nexus for BEAUti import    
-    writeNexus(tree,paste0(root,"/pruned_tree.nex"))
-    #write.tree(tree,root,"/pruned_tree.tre") # save as .tre if useful
+  
+  # Remove existing branch lengths
+    tree$edge.length<-NULL # remove existing branch lengths  
+  # Save a copy of this tree
+    write.tree(tree,paste0(root,"/pruned_tree.tre"))
     
   # Tree info:
     out<-c("Amphimedon queenslandica","Magallana gigas","Strongylocentrotus purpuratus","Trichoplax adhaerens")
@@ -155,6 +156,29 @@ Download taxon lists for each fossil from github, used in BEAST to chronological
         download.file(url,dest,method="wget")
       }
     }; rm(url,dest,c_list)
+    
+  # Use fossil calibration data to create a starting tree with branch lengths that do not disagree with fossil data
+    
+    # Download starttree program from github, build 
+    #url = "https://github.com/nsierra1/cnidome_asr/raw/master/starttree"
+    #dest = paste0(str_remove(root, "/data"),"starttree")
+    #download.file(url,dest,method="wget")
+    #system(paste0("chmod u+x ",str_remove(root, "/data"),"starttree"))
+    #system(paste0("PATH=$PATH:",str_remove(root, "/data")))
+
+    # Download fossil calibration input file
+    url = "https://raw.githubusercontent.com/nsierra1/cnidome_asr/master/nodes_fossilcalib.txt"
+    dest = paste0(root,"fossil_calibrations/nodes_fossilcalib.txt")
+    download.file(url,dest,method="wget")
+
+    # Run starttree
+    x<-paste0("starttree -tre ",root,"pruned_tree.tre -cal ",root,"fossil_calibrations/nodes_fossilcalib.txt -out ",root,"pruned_tree.phy -n ",length(tree$tip.label))
+    suppressMessages(system(x))
+    
+    # Save to nexus for BEAUti import 
+    calib_tree<-read.tree(file=paste0(root,"/pruned_tree.phy"))
+    writeNexus(calib_tree,paste0(root,"/pruned_tree_input.nex"))
+    
 
 ```
 
